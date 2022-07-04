@@ -3,10 +3,32 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
+const {connect} = require('./src/db/index')
 
 const indexRouter = require('./src/routes/index');
 
 const app = express();
+
+// connect to the db
+
+async function connectMongo() {
+  const connection = await connect().catch(async (err) => {
+    console.log(err);
+  })
+  if(connection){
+    const cleanUp = (eventType) => {
+      connection.close(() => {
+           console.info('mongo connection closed');
+       });
+    };
+    
+    [`exit`, `SIGINT`, `SIGUSR1`, `SIGUSR2`, `uncaughtException`, `SIGTERM`].forEach((eventType) => {
+      process.on(eventType, cleanUp.bind(null, eventType));
+    })
+  }
+}
+
+connectMongo();
 
 app.use(function (req, res, next) {
   res.header('Access-Control-Allow-Origin', "*");
